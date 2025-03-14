@@ -5,6 +5,7 @@
 #include "RemoteCtrl.h"
 #include"Resource.h"
 #include "ServerSocket.h"
+#include"LockDialog.h"
 #include<direct.h>
 #include<io.h>
 #include<list>
@@ -45,7 +46,7 @@ int MakeDriverInfo() {//创建一个磁盘信息的分区（1==>A, 2==>B, 3==>C.
     }
     CPacket pack(1, (BYTE*)result.c_str(), result.size());//打包
     Dump((BYTE*)pack.Data(), pack.Size());//封装打包过程
-    //CServerSocket::getInstance()->Send(pack);
+    CServerSocket::getInstance()->Send(pack);
 
     return 0;
 }
@@ -241,24 +242,31 @@ int MouseEvent() {
 int SendScreen() {
     CImage screen;//GDI全局设备接口
     HDC hScreen = ::GetDC(NULL);//获取设备上下文
+
     int nBitPerPixel = GetDeviceCaps(hScreen, BITSPIXEL);
     int nWidth = GetDeviceCaps(hScreen, HORZRES);//宽
     int nHeight = GetDeviceCaps(hScreen, VERTRES);//高
+
     screen.Create(nWidth, nHeight, nBitPerPixel);
+
     BitBlt(screen.GetDC(), 0, 0, 2560, 1440, hScreen, 0, 0, SRCCOPY);
     ReleaseDC(NULL, hScreen);
+
     HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
+
     if (hMem == NULL) return -1;
+
     IStream* pStream = NULL;
     HRESULT ret = CreateStreamOnHGlobal(hMem, TRUE, &pStream);//在全局变量上创建一个流
+
     if (ret == S_OK) {
         screen.Save(pStream, Gdiplus::ImageFormatPNG);
         LARGE_INTEGER begin = { 0 };
         pStream->Seek(begin, STREAM_SEEK_SET, NULL);
         PBYTE pData = (PBYTE)GlobalLock(hMem);
         SIZE_T nSize = GlobalSize(hMem);
-        CPacket pack(6, pData, nSize);
 
+        CPacket pack(6, pData, nSize);
         CServerSocket::getInstance()->Send(pack);
         
         GlobalUnlock(hMem);
@@ -269,6 +277,81 @@ int SendScreen() {
     GlobalFree(hMem);
     screen.ReleaseDC();
     
+    return 0;
+}
+CLockDialog dlg;
+unsigned threadid = 0;
+
+unsigned __stdcall threadLockDlg(void* arg) {
+   
+    dlg.Create(IDD_DIALOG_INFO, NULL);
+    dlg.ShowWindow(SW_SHOW);
+
+    //遮蔽后台窗口
+    CRect rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = 2560;
+    rect.bottom = 1440;
+    dlg.MoveWindow(rect);
+
+    //窗口置顶
+    dlg.SetWindowPos(&dlg.wndNoTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+    //限制鼠标功能
+    ShowCursor(false);
+    //隐藏任务栏
+    ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_HIDE);//隐藏任务栏
+    // 移除标题栏样式（需要配合窗口重绘）
+    dlg.ModifyStyle(WS_CAPTION, 0, SWP_FRAMECHANGED);
+    dlg.SetWindowPos(nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+
+    //限制鼠标活动范围
+    //dlg.GetWindowRect(rect);
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = 1;
+    rect.bottom = 1;
+    ClipCursor(rect);//限制鼠标活动范围
+
+    //消息循环
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);//传递消息
+        DispatchMessage(&msg);//分配消息
+        if (msg.message == WM_KEYDOWN) {
+            TRACE("mag:%08X  wparam:%08x lparam:%08X\r\n", msg.message, msg.wParam, msg.lParam);
+            if (msg.wParam == 0x41) {//按下A退出 (ESC 1B)
+                break;
+            }
+        }
+    }
+
+    dlg.DestroyWindow();
+    ShowCursor(true);//显示鼠标
+    ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_SHOW);//显示任务栏
+    _endthreadex(0);
+    return 0;
+}
+
+int LockMachine() {
+
+    if (dlg.m_hWnd == NULL || dlg.m_hWnd == INVALID_HANDLE_VALUE) {
+        //_beginthread(threadLockDlg, 0, NULL);
+        _beginthreadex(NULL, 0, threadLockDlg, NULL, 0, &threadid);
+    }
+    CPacket pack(7, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
+    return 0;
+}
+
+int UnlockMachine() {
+
+    //dlg.SendMessage(WM_KEYDOWN, 0x41, 001E0001);
+    //::SendMessage(dlg.m_hWnd, WM_KEYDOWN, 0x41, 0x01E0001);
+    PostThreadMessage(threadid, WM_KEYDOWN, 0x41, 0);
+    CPacket pack(7, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
+
     return 0;
 }
 
@@ -310,8 +393,10 @@ int main()
             //    int ret = pserver->DealCommand();
             //    //TODO:处理命令
             // }
-            ////全局的静态变量
-            int nCmd = 6;
+            
+            //全局的静态变量
+
+            int nCmd = 7;
             switch (nCmd) {
             case 1://查看磁盘分区
                 MakeDriverInfo();
@@ -331,6 +416,19 @@ int main()
             case 6://发送屏幕内容==>发送屏幕的截图
                 SendScreen();
                 break;
+            case 7://锁机
+                 LockMachine(); 
+                 Sleep(50);
+                 LockMachine();
+                break;
+            case 8://解锁
+                UnlockMachine();
+                break;
+            }
+            Sleep(5000);
+            UnlockMachine();
+            while (dlg.m_hWnd != NULL) {
+                Sleep(10);
             }
         }
     }
