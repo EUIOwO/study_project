@@ -327,7 +327,7 @@ unsigned __stdcall threadLockDlg(void* arg) {
     }
 
     dlg.DestroyWindow();
-    ShowCursor(true);//显示鼠标
+    ShowCursor(true);//显示鼠标 
     ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_SHOW);//显示任务栏
     _endthreadex(0);
     return 0;
