@@ -3,7 +3,7 @@
 #pragma pack(1)
 #include "pch.h"
 #include "framework.h"
-
+#pragma comment(lib, "ws2_32.lib")
 class CPacket {
 public:
 	CPacket() :sHead(0), nLength(0), sCmd(0), sSum(0) {}
@@ -125,7 +125,9 @@ public:
 	}
 	bool initSocket() {
 
-		if (m_socket == -1) return false;
+		if (m_socket == INVALID_SOCKET) {
+			return false;
+		}
 		//TODO：校验
 		sockaddr_in serv_addr;
 		memset(&serv_addr, 0, sizeof(serv_addr));
@@ -134,10 +136,11 @@ public:
 		serv_addr.sin_port = htons(9527);
 
 		//绑定
-		if (bind(m_socket, (sockaddr*)&serv_addr, sizeof(serv_addr)) == -1) {
+		if (bind(m_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1) {
 			return false;
 		}
 		if (listen(m_socket, 1) == -1) {
+
 			return false;
 		}
 		return true;
@@ -145,10 +148,12 @@ public:
 
 	}
 	bool AcceptClient() {
+		TRACE("enter AcceptClient\r\n");
 		sockaddr_in client_addr;
 		char buffer[1024]{};
 		int cli_sz = sizeof(client_addr);
 		m_client = accept(m_socket, (sockaddr*)&client_addr, &cli_sz);
+		TRACE("m_client = %d\r\n", m_client);
 		if (m_client == -1) return false;
 		return true;
 
@@ -159,23 +164,32 @@ public:
 	int DealCommand() {
 		if (m_client == -1) return -1;
 		//char buffer[1024] = "";
-		char* buffer = new char[4096];
-		memset(buffer, 0, 4096);
+		char* buffer = new char[BUFFER_SIZE];
+		if (buffer == NULL) {
+			TRACE("内存不足！\r\n");
+			return -2;
+		}
+		memset(buffer, 0, BUFFER_SIZE);
 		size_t index = 0;
+
 		while (1) {
 			size_t len = recv(m_client, buffer + index, BUFFER_SIZE - static_cast<size_t>(index), 0);
 			if (len <= 0) {
+				delete[]buffer;
 				return -1;
 			}
+			TRACE("server recv %d\r\n", len);
 			index += len;
 			len = index;
 			m_packet = CPacket((BYTE*)buffer, len);
-			if (len > 0) {
+			if (index > 0) {
 				memmove(buffer, buffer + len, 4096 - len);
 				index -= len;
+				delete[]buffer;
 				return m_packet.sCmd;
 			}
 		}
+		delete[]buffer;
 		return -1;
 	}
 
@@ -186,7 +200,9 @@ public:
 
 	bool Send(CPacket& pack) {
 		if (m_client == -1) return false;
-		return send(m_client, pack.Data(), pack.Size(), 0) > 0;
+		//return send(m_client, pack.Data(), pack.Size(), 0) > 0;
+		size_t len = send(m_client, pack.Data(), pack.Size(), 0);
+		return len > 0;
 	}
 
 	bool GetFilePath(std::string& strPath) {
@@ -204,11 +220,17 @@ public:
 		}
 		return false;
 	}
+	CPacket &GetPacket()
+	{
+		return m_packet;
+	}
 
+	void CloseClient() {
+		closesocket(m_client);
+		m_client = INVALID_SOCKET;
+	}
 private:
-	SOCKET m_client;
-	SOCKET m_socket;
-	CPacket m_packet;
+	
 	CServerSocket& operator = (const CServerSocket& ss) {}
 	CServerSocket(const CServerSocket& ss) {
 		m_socket = ss.m_socket;
@@ -221,7 +243,8 @@ private:
 			MessageBox(NULL, _T("无法初始化套接字环境, 请检查网络设置！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);
 			exit(0);
 		}
-		SOCKET m_socket = socket(PF_INET, SOCK_STREAM, 0);
+		m_socket = socket(PF_INET,  SOCK_STREAM,  0);
+
 	}
 	~CServerSocket() {
 		closesocket(m_socket);
@@ -230,7 +253,7 @@ private:
 
 	BOOL InitSocEnv() {
 		WSADATA data;
-		if (WSAStartup(MAKEWORD(1, 1), &data) != 0) {
+		if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
 			return FALSE;
 
 		}
@@ -256,6 +279,10 @@ public:
 
 		}
 	};
+private:
+		SOCKET m_client;
+		SOCKET m_socket;
+		CPacket m_packet;
 };
 
 //声明外部变量
