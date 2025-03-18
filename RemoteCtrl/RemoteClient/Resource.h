@@ -7,8 +7,13 @@
 #define IDS_ABOUTBOX                    101
 #define IDD_REMOTECLIENT_DIALOG         102
 #define IDR_MAINFRAME                   128
-#define IDC_BTN                         1001
 #define IDC_BTN_TEST                    1001
+#define IDC_EDIT_PORT                   1002
+#define IDC_IPADDRESS_SERV              1003
+#define IDC_TREE_DIR                    1007
+#define IDC_LIST_FILE                   1008
+#define IDC_BUTTON3                     1011
+#define IDC_BTN_FILEINFO                1011
 
 // Next default values for new objects
 // 
@@ -16,7 +21,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1002
+#define _APS_NEXT_CONTROL_VALUE         1012
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
