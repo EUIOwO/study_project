@@ -41,28 +41,18 @@ int MakeDriverInfo() {//创建一个磁盘信息的分区（1==>A, 2==>B, 3==>C.
             if (result.size() > 0) {
                 result += ',';
             }
-            result += 'A' + i - 1;
+            result += ('A' + i - 1);
+            
         }
+        
     }
+    result += ',';
     CPacket pack(1, (BYTE*)result.c_str(), result.size());//打包
     Dump((BYTE*)pack.Data(), pack.Size());//封装打包过程
     CServerSocket::getInstance()->Send(pack);
 
     return 0;
 }
-
-typedef struct file_info {
-    file_info() {
-        IsInvalid = FALSE;
-        IsDirectory = -1;//无效
-        HasNext = TRUE;
-        memset(szFileName, 0, sizeof(szFileName));
-    }
-    BOOL IsInvalid;//是否有效
-    BOOL IsDirectory;//是否为目录 0 否 1 是
-    BOOL HasNext;//是否还有后续 0 没有 1 有
-    char szFileName[256];//文件名
-}FILEINFO, * PFILEINFO;
 
 int MakeDirectoryInfo() {
     std::string strPath;
@@ -73,29 +63,31 @@ int MakeDirectoryInfo() {
     }
     if (_chdir(strPath.c_str()) != 0) {
         FILEINFO finfo;
-        finfo.IsInvalid = TRUE;
-        finfo.IsDirectory = TRUE;
         finfo.HasNext = FALSE;
-        memcpy(finfo.szFileName, strPath.c_str(), strPath.size());
-        //listFileInfos.push_back(finfo);
         CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
         CServerSocket::getInstance()->Send(pack);
         OutputDebugString(_T("没有权限访问目录！！"));
         return -2;
     }
     _finddata_t fdata;
-    int hfind = 0;
+    intptr_t hfind = 0;
     if ((hfind = _findfirst("*", &fdata)) == -1) {
         OutputDebugString(_T("没有找到任何文件！！"));
-        return -3;
-    }
-    do {
         FILEINFO finfo;
-        finfo.IsDirectory = (fdata.attrib & _A_SUBDIR) != 0;
-        memcpy(finfo.szFileName, fdata.name, strlen(fdata.name));
-        //listFileInfos.push_back(finfo);
+        finfo.HasNext = FALSE;
         CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
         CServerSocket::getInstance()->Send(pack);
+        return -3;
+    }
+    
+    do {
+        FILEINFO finfo;
+        finfo.IsDirectory = ((fdata.attrib & _A_SUBDIR) != 0);
+        memcpy(finfo.szFileName, fdata.name, strlen(fdata.name));
+        TRACE("%s\r\n",finfo.szFileName);
+        CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
+        CServerSocket::getInstance()->Send(pack);
+        
     } while (!_findnext(hfind, &fdata));
     //发送信息到控制端
     FILEINFO finfo;
@@ -293,6 +285,8 @@ unsigned __stdcall threadLockDlg(void* arg) {
     rect.top = 0;
     rect.right = 2560;
     rect.bottom = 1440;
+    rect.bottom = LONG(rect.bottom * 1.03);
+    TRACE("right = %d bottom = %d\r\n", rect.right, rect.bottom);
     dlg.MoveWindow(rect);
 
     //窗口置顶

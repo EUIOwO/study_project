@@ -4,6 +4,8 @@
 #include "pch.h"
 #include "framework.h"
 #pragma comment(lib, "ws2_32.lib")
+void Dump(BYTE* pData, size_t nSize);
+
 class CPacket {
 public:
 	CPacket() :sHead(0), nLength(0), sCmd(0), sSum(0) {}
@@ -114,6 +116,19 @@ typedef struct MouseEvent{
 	POINT ptXY;//坐标
 }MOUSEEV, *PMOUSEEV;
 
+typedef struct file_info {
+	file_info() {
+		IsInvalid = FALSE;
+		IsDirectory = -1;//无效
+		HasNext = TRUE;
+		memset(szFileName, 0, sizeof(szFileName));
+	}
+	BOOL IsInvalid;//是否有效
+	BOOL IsDirectory;//是否为目录 0 否 1 是
+	BOOL HasNext;//是否还有后续 0 没有 1 有
+	char szFileName[256];//文件名
+}FILEINFO, * PFILEINFO;
+
 class CServerSocket
 {
 public:
@@ -200,7 +215,7 @@ public:
 
 	bool Send(CPacket& pack) {
 		if (m_client == -1) return false;
-		//return send(m_client, pack.Data(), pack.Size(), 0) > 0;
+		Dump((BYTE*)pack.Data(), pack.Size());
 		size_t len = send(m_client, pack.Data(), pack.Size(), 0);
 		return len > 0;
 	}
