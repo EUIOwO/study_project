@@ -27,8 +27,12 @@ public:
 	bool isFull() const {//const表示该函数不会修改任何成员变量
 		return m_isFull;
 	}
+
 	CImage& GetImage() {
 		return m_image;
+	}
+	void SetImageStatus(bool isFull = false) {
+		m_isFull = isFull;
 	}
 private:
 	CImage m_image;//缓存

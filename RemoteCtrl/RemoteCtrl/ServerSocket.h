@@ -178,7 +178,6 @@ public:
 #define BUFFER_SIZE 4096
 	int DealCommand() {
 		if (m_client == -1) return -1;
-		//char buffer[1024] = "";
 		char* buffer = new char[BUFFER_SIZE];
 		if (buffer == NULL) {
 			TRACE("内存不足！\r\n");
@@ -187,8 +186,8 @@ public:
 		memset(buffer, 0, BUFFER_SIZE);
 		size_t index = 0;
 
-		while (1) {
-			size_t len = recv(m_client, buffer + index, BUFFER_SIZE - static_cast<size_t>(index), 0);
+		while (true) {
+			size_t len = recv(m_client, buffer + index, BUFFER_SIZE - static_cast<size_t>(index), 0);//实际接收到的长度
 			if (len <= 0) {
 				delete[]buffer;
 				return -1;
@@ -196,7 +195,7 @@ public:
 			TRACE("server recv %d\r\n", len);
 			index += len;
 			len = index;
-			m_packet = CPacket((BYTE*)buffer, len);
+			m_packet = CPacket((BYTE*)buffer, len);//解包
 			if (index > 0) {
 				memmove(buffer, buffer + len, 4096 - len);
 				index -= len;

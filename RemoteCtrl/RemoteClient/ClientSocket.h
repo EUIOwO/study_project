@@ -172,14 +172,13 @@ public:
 		return true;
 	}
 	
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 4096000
 	int DealCommand() {
 		if (m_sock == -1) return -1;
-		//char buffer[1024] = "";
 		char* buffer = m_buffer.data();
 		memset(buffer, 0, BUFFER_SIZE);
-		size_t index = 0;
-		while (1) {
+		static size_t index = 0;
+		while (true) {
 			size_t len = recv(m_sock, buffer + index, BUFFER_SIZE - index, 0);
 			
 			if (len <= 0) {
@@ -192,6 +191,9 @@ public:
 			if (index > 0) {
 				memmove(buffer, buffer + len, BUFFER_SIZE - len);
 				index -= len;
+				if (m_packet.sCmd == 6) {
+					TRACE("½ÓÊÕµ½Í¼Æ¬----------------------\r\n");
+				}
 				return m_packet.sCmd;
 			}
 		}
@@ -199,22 +201,19 @@ public:
 		return -1;
 	}
 
-	bool Send(const char* pData, size_t nSize) {
+	bool Send(const char* pData, int nSize) {
 		if (m_sock == -1) return false;
-		return send(m_sock, pData, (int)nSize, 0) > 0;
+		return send(m_sock, pData, nSize, 0) > 0;
 	}
 
 	bool Send(CPacket& pack) {
+		TRACE("m_sock = %d\r\n", m_sock);
 		if (m_sock == -1) return false;
-		//return send(m_sock, pack.Data(), pack.Size(), 0) > 0;
-		size_t len = send(m_sock, pack.Data(), pack.Size(), 0);
-
-		TRACE("client send len = %d\r\n", len);
-		return len > 0;
+		return send(m_sock, pack.Data(), pack.Size(), 0) > 0;
 	}
 
 	bool GetFilePath(std::string& strPath) {
-		if ((m_packet.sCmd == 2) || (m_packet.sCmd == 3) || (m_packet.sCmd == 4)) {
+		if ((m_packet.sCmd >= 2)&&(m_packet.sCmd <= 4)) {
 			strPath = m_packet.strData;
 			return true;
 		}
