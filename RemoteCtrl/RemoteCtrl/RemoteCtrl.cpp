@@ -285,11 +285,22 @@ unsigned __stdcall threadLockDlg(void* arg) {
     CRect rect;
     rect.left = 0;
     rect.top = 0;
-    rect.right = 2560;
-    rect.bottom = 1440;
-    rect.bottom = LONG(rect.bottom * 1.03);
+    rect.right = GetSystemMetrics(SM_CXFULLSCREEN);//w1
+    rect.bottom = GetSystemMetrics(SM_CYFULLSCREEN);//h1
+    rect.bottom = LONG(rect.bottom * 1.10);
     TRACE("right = %d bottom = %d\r\n", rect.right, rect.bottom);
     dlg.MoveWindow(rect);
+    CWnd* pText = dlg.GetDlgItem(IDC_STATIC);
+
+    if (pText) {
+        CRect rtText;
+        pText->GetWindowRect(rtText);
+        int nWidth = rtText.Width() / 2;//w0
+        int nHeight = rtText.Height() / 2;//h0
+        int x = (rect.right - nWidth) / 2;
+        int y = (rect.top - nHeight) / 2;
+        pText->MoveWindow(x, y, rtText.Width(), rtText.Height());
+    }
 
     //窗口置顶
     dlg.SetWindowPos(&dlg.wndNoTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
@@ -302,7 +313,7 @@ unsigned __stdcall threadLockDlg(void* arg) {
     dlg.SetWindowPos(nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 
     //限制鼠标活动范围
-    //dlg.GetWindowRect(rect);
+    dlg.GetWindowRect(rect);
     rect.left = 0;
     rect.top = 0;
     rect.right = 1;
@@ -321,10 +332,10 @@ unsigned __stdcall threadLockDlg(void* arg) {
             }
         }
     }
-
+    ClipCursor(NULL);//取消对鼠标的限制
+    ShowCursor(true);//恢复鼠标 
+    ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_SHOW);//恢复任务栏
     dlg.DestroyWindow();
-    ShowCursor(true);//显示鼠标 
-    ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_SHOW);//显示任务栏
     _endthreadex(0);
     return 0;
 }
@@ -345,7 +356,7 @@ int UnlockMachine() {
     //dlg.SendMessage(WM_KEYDOWN, 0x41, 001E0001);
     //::SendMessage(dlg.m_hWnd, WM_KEYDOWN, 0x41, 0x01E0001);
     PostThreadMessage(threadid, WM_KEYDOWN, 0x41, 0);
-    CPacket pack(7, NULL, 0);
+    CPacket pack(8, NULL, 0);
     CServerSocket::getInstance()->Send(pack);
 
     return 0;
