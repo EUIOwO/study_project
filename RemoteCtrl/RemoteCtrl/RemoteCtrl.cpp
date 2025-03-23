@@ -262,7 +262,6 @@ int SendScreen() {
         CPacket pack(6, pData, nSize);
 
         CServerSocket::getInstance()->Send(pack);
-        TRACE("发送图片-----------------------\r\n");
         GlobalUnlock(hMem);
     }
     
