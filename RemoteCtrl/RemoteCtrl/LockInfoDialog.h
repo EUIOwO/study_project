@@ -4,13 +4,13 @@
 
 // CLockDialog 对话框
 
-class CLockDialog : public CDialog
+class CLockInfoDialog : public CDialog
 {
-	DECLARE_DYNAMIC(CLockDialog)
+	DECLARE_DYNAMIC(CLockInfoDialog)
 
 public:
-	CLockDialog(CWnd* pParent = nullptr);   // 标准构造函数
-	virtual ~CLockDialog();
+	CLockInfoDialog(CWnd* pParent = nullptr);   // 标准构造函数
+	virtual ~CLockInfoDialog();
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME

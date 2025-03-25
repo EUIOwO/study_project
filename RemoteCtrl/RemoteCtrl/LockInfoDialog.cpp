@@ -4,31 +4,31 @@
 #include "pch.h"
 #include "RemoteCtrl.h"
 #include "afxdialogex.h"
-#include "LockDialog.h"
+#include "LockInfoDialog.h"
 
 
 // CLockDialog 对话框
 
-IMPLEMENT_DYNAMIC(CLockDialog, CDialog)
+IMPLEMENT_DYNAMIC(CLockInfoDialog, CDialog)
 
-CLockDialog::CLockDialog(CWnd* pParent /*=nullptr*/)
+CLockInfoDialog::CLockInfoDialog(CWnd* pParent /*=nullptr*/)
 	: CDialog(IDD_DIALOG_INFO, pParent)
 {
 
 }
 
-CLockDialog::~CLockDialog()
+CLockInfoDialog::~CLockInfoDialog()
 {
 
 }
 
-void CLockDialog::DoDataExchange(CDataExchange* pDX)
+void CLockInfoDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 }
 
 
-BEGIN_MESSAGE_MAP(CLockDialog, CDialog)
+BEGIN_MESSAGE_MAP(CLockInfoDialog, CDialog)
 END_MESSAGE_MAP()
 
 
