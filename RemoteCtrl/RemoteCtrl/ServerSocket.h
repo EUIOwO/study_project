@@ -1,133 +1,12 @@
-#pragma once
-#pragma pack(push)
-#pragma pack(1)
-#include "pch.h"
-#include "framework.h"
+#pragma onc
+#include <list>
+#include "Packet.h"
 #pragma comment(lib, "ws2_32.lib")
-void Dump(BYTE* pData, size_t nSize);
 
-class CPacket {
-public:
-	CPacket() :sHead(0), nLength(0), sCmd(0), sSum(0) {}
-	CPacket(WORD nCmd, const BYTE* pData, size_t nSize) {
-		sHead = 0xFEFF;
-		nLength = nSize + 4;
-		sCmd = nCmd;
-		if (nSize > 0) {
-			strData.resize(nSize);
-			memcpy((void*)strData.c_str(), pData, nSize);
-		}
-		else {
-			strData.clear();
-		}
 
-		sSum = 0;
-		for (size_t j = 0; j < strData.size(); j++) {
-			sSum += BYTE(strData[j]) & 0xFF;
-		}
-	}
-	CPacket(const CPacket& pack) { //复制构造函数
-		sHead = pack.sHead;
-		nLength = pack.nLength;
-		sCmd = pack.sCmd;
-		strData = pack.strData;
-		sSum = pack.sSum;
-	}
 
-	CPacket(const BYTE* pData, size_t& nSize) {
-		size_t i = 0;
-		for (; i < nSize; i++) {
-			if (*(WORD*)(pData + i) == 0xFEFF) {
-				sHead = *(WORD*)(pData + i);
-				i += 2;
-				break;
-			}
-		}
-		if (i + 8 > nSize) {//包数据可能不全，或者包头未能全部接收到
-			nSize = 0;
-			return;
-		}
-		nLength = *(DWORD*)(pData + i); i += 4;
 
-		if (nLength + i > nSize) {//包没有完全接收到，就返回，解析失败
-			nSize = 0;
-			return;
-		}
-
-		sCmd = *(WORD*)(pData + i); i += 2;
-		if (nLength > 4) {
-			strData.resize(nLength - 2 - 2);
-			memcpy((void*)strData.c_str(), pData + i, nLength - 4);
-			i += nLength - 4;
-		}
-		sSum = *(WORD*)(pData + i); i += 2;
-		WORD sum = 0;
-		for (size_t j = 0; j < strData.size(); j++) {
-			sum += BYTE(strData[j]) & 0xFF;
-		}
-		if (sum == sSum) {
-			nSize = i;
-		}
-		nSize = 0;
-	}
-	~CPacket() {}
-	CPacket& operator = (const CPacket& pack) {//等于号的运算符重载
-		if (this != &pack) {
-			sHead = pack.sHead;
-			nLength = pack.nLength;
-			sCmd = pack.sCmd;
-			strData = pack.strData;
-			sSum = pack.sSum;
-		}
-		return *this;
-	}
-	int Size() {//获得包数据的大小
-		return nLength + 6;
-	}
-	const char* Data() {
-		strOut.resize(nLength + 6);
-		BYTE* pData = (BYTE*)strOut.c_str();
-		*(WORD*)pData = sHead; pData += 2;
-		*(DWORD*)(pData) = nLength; pData += 4;
-		*(WORD*)pData = sCmd; pData += 2;
-		memcpy(pData, strData.c_str(), strData.size()); pData += strData.size();
-		*(WORD*)pData = sSum;
-		return strOut.c_str();
-	}
-
-public:
-	WORD sHead;//固定位FE FF
-	DWORD nLength;//包长度（从控制命令开始，到和校验结束）
-	WORD sCmd;//控制命令
-	std::string strData;//包数据
-	WORD sSum;//和校验
-	std::string strOut;//整个包的数据
-};
-
-typedef struct MouseEvent{
-	MouseEvent() {
-		nAction = 0;
-		nButton = -1;
-		ptXY.x = 0;
-		ptXY.y = 0;
-	}
-	WORD nAction;//点击、移动、双击
-	WORD nButton;//左键、右键、中键
-	POINT ptXY;//坐标
-}MOUSEEV, *PMOUSEEV;
-
-typedef struct file_info {
-	file_info() {
-		IsInvalid = FALSE;
-		IsDirectory = -1;//无效
-		HasNext = TRUE;
-		memset(szFileName, 0, sizeof(szFileName));
-	}
-	BOOL IsInvalid;//是否有效
-	BOOL IsDirectory;//是否为目录 0 否 1 是
-	BOOL HasNext;//是否还有后续 0 没有 1 有
-	char szFileName[256];//文件名
-}FILEINFO, * PFILEINFO;
+typedef void(*SOCKET_CALLBACK)(void*, int, std::list<CPacket>& lstPacket, CPacket& inPacket);
 
 class CServerSocket
 {
@@ -138,7 +17,7 @@ public:
 		}
 		return m_instance;
 	}
-	bool initSocket() {
+	bool InitSocket(short port = 9527) {
 
 		if (m_socket == INVALID_SOCKET) {
 			return false;
@@ -148,7 +27,7 @@ public:
 		memset(&serv_addr, 0, sizeof(serv_addr));
 		serv_addr.sin_family = AF_INET;//地址族
 		serv_addr.sin_addr.s_addr = INADDR_ANY;
-		serv_addr.sin_port = htons(9527);
+		serv_addr.sin_port = htons(port);
 
 		//绑定
 		if (bind(m_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1) {
@@ -158,10 +37,40 @@ public:
 
 			return false;
 		}
+		
 		return true;
-
-
 	}
+
+	int Run(SOCKET_CALLBACK callback, void* arg, short port = 9527) {
+		//1.进度的可控性 2.对接的方便性 3.可行性评估，提早暴露风险
+		//TODO:socket、bind、listen、accept、read、write、close
+		//套接字初始化
+		bool ret = InitSocket(port);
+		if (ret == false) return -1;
+		std::list<CPacket> lstPackets;
+		m_callback = callback;
+		m_arg = arg;
+		int count = 0;
+		while (true) {
+			if (AcceptClient() == false) {
+				if (count >= 3) {
+					return -2;
+				}
+				count++;
+			}
+			int ret = DealCommand();
+			if (ret > 0) {
+				m_callback(m_arg, ret, lstPackets, m_packet);
+				if (lstPackets.size() > 0) {
+					Send(lstPackets.front());
+					lstPackets.pop_front();
+				}
+			}
+			CloseClient();
+		}
+		return 0;
+	}
+
 	bool AcceptClient() {
 		TRACE("enter AcceptClient\r\n");
 		sockaddr_in client_addr;
@@ -214,7 +123,7 @@ public:
 
 	bool Send(CPacket& pack) {
 		if (m_client == -1) return false;
-		Dump((BYTE*)pack.Data(), pack.Size());
+		//Dump((BYTE*)pack.Data(), pack.Size());
 		size_t len = send(m_client, pack.Data(), pack.Size(), 0);
 		return len > 0;
 	}
@@ -240,11 +149,17 @@ public:
 	}
 
 	void CloseClient() {
-		closesocket(m_client);
-		m_client = INVALID_SOCKET;
+		if (m_client != INVALID_SOCKET) {
+			closesocket(m_client);
+			m_client = INVALID_SOCKET;
+		}
 	}
 private:
-	
+	SOCKET_CALLBACK m_callback;
+	void* m_arg;
+	SOCKET m_client;
+	SOCKET m_socket;
+	CPacket m_packet;
 	CServerSocket& operator = (const CServerSocket& ss) {}
 	CServerSocket(const CServerSocket& ss) {
 		m_socket = ss.m_socket;
@@ -293,10 +208,7 @@ public:
 
 		}
 	};
-private:
-		SOCKET m_client;
-		SOCKET m_socket;
-		CPacket m_packet;
+	
 };
 
 //声明外部变量

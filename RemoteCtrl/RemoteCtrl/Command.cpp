@@ -7,7 +7,7 @@ CCommand::CCommand() :threadid(0)
 		int nCmd;
 		CMDFUNC func;
 	}data[] = {
-		{1,&CCommand::MakeDirectoryInfo},
+		{1,&CCommand::MakeDriverInfo},
 		{2,&CCommand::MakeDirectoryInfo},
 		{3,&CCommand::RunFile},
 		{4,&CCommand::DownloadFile},
@@ -24,11 +24,11 @@ CCommand::CCommand() :threadid(0)
 	}
 }
 
-int CCommand::ExcuteCommand(int nCmd)
+int CCommand::ExcuteCommand(int nCmd, std::list<CPacket>& lstPackets, CPacket& inPacket)
 {
 	std::map<int, CMDFUNC>::iterator it = m_mapFunction.find(nCmd);
 	if (it == m_mapFunction.end()) {
 		return -1;
 	}
-	return (this->*it->second)();
+	return (this->*it->second)(lstPackets, inPacket);
 }
