@@ -231,6 +231,11 @@ void CRemoteClientDlg::OnBnClickedBtnFileinfo()
 		}
 		dr += drivers[i];
 	}
+	if (dr.size() > 0) {
+		dr += ":";
+		HTREEITEM hTmp = m_Tree.InsertItem(dr.c_str(), TVI_ROOT, TVI_LAST);//添加节点
+		m_Tree.InsertItem(NULL, hTmp, TVI_LAST);
+	}
 }
 
 
