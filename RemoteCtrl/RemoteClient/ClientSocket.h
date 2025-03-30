@@ -192,7 +192,6 @@ public:
 				memmove(buffer, buffer + len, BUFFER_SIZE - len);
 				index -= len;
 				if (m_packet.sCmd == 6) {
-					TRACE("接收到图片----------------------\r\n");
 				}
 				return m_packet.sCmd;
 			}
@@ -267,7 +266,7 @@ private:
 		return TRUE;
 	}
 
-	void releaseInstance() {
+	static void releaseInstance() {
 		if (m_instance != NULL) {
 			CClientSocket* tmp = m_instance;
 			m_instance = NULL;
@@ -276,17 +275,18 @@ private:
 	}
 
 	static CClientSocket* m_instance;
-public:
 	class CHelper {
 	public:
 		CHelper() {
 			CClientSocket::getInstance();
 		}
 		~CHelper() {
-
+			CClientSocket::releaseInstance();
 		}
 	};
+	static CHelper m_helper;
 };
+
 
 //声明外部变量
 extern CClientSocket server;

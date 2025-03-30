@@ -344,7 +344,7 @@ protected:
     int DeleteLocalFile(std::list<CPacket>& lstPacket, CPacket& inPacket) {
 
         std::string strPath = inPacket.strData;
-        TCHAR sPath[MAX_PATH] = _T("";)
+        WCHAR sPath[MAX_PATH] = {0};
             //mbstowcs(sPath, strPath.c_str(), strPath.size());//将宽字节字符集转换成多字节字符集(中文容易乱码)
             MultiByteToWideChar(CP_ACP, 0, strPath.c_str(), strPath.size(), sPath, sizeof(sPath) / sizeof(TCHAR));
         DeleteFileA(strPath.c_str());

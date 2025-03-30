@@ -8,7 +8,7 @@
 #define IDD_REMOTECLIENT_DIALOG         102
 #define IDR_MAINFRAME                   128
 #define IDR_MENU_RCLICK                 130
-#define IDD_DIALOG_STATUS               131
+#define IDD_DIALOG_STATUS				131
 #define IDD_DLG_WATCH                   133
 #define IDC_BTN_TEST                    1001
 #define IDC_EDIT_PORT                   1002
