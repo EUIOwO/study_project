@@ -175,16 +175,16 @@ public:
 #define BUFFER_SIZE 819200000
 	int DealCommand() {
 		if (m_sock == -1) return -1;
-		char* buffer = m_buffer.data();
-		memset(buffer, 0, BUFFER_SIZE);
-		static size_t index = 0;
+		char* buffer = m_buffer.data();//TODO:多线程发送命令时可能会出现冲突
+		static int index = 0;
 		while (true) {
 			size_t len = recv(m_sock, buffer + index, BUFFER_SIZE - index, 0);
 			
-			if (len <= 0) {
+			if ((int)len <= 0) {
 				return -1;
 			}
-			TRACE("client recv %d\r\n", len);
+			TRACE("recv len = %d(0x%08X)index = %d(0x%08X)\r\n", 
+				len, len, index, index);
 			index += len;
 			len = index;
 			m_packet = CPacket((BYTE*)buffer, len);
