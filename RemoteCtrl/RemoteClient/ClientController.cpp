@@ -46,13 +46,14 @@ LRESULT CClientController::SendMessage(MSG msg)
 	MSGINFO info(msg);
 	PostThreadMessage(m_nThreadID, WM_SEND_MESSAGE, (WPARAM)&info,
 		(LPARAM)&hEvent);
-	WaitForSingleObject(hEvent, -1);
+	WaitForSingleObject(hEvent, INFINITE);
+	CloseHandle(hEvent);
 	return info.result;
 }
 
 int CClientController::SendCommandPacket(int nCmd, bool bAutoClose,
 	BYTE* pData, size_t nLength, std::list<CPacket>* plstPacks)
-{
+{ 
 	CClientSocket* pClient = CClientSocket::getInstance();
 	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 	//TODO:不因该直接发送，而是投入队列
@@ -60,6 +61,7 @@ int CClientController::SendCommandPacket(int nCmd, bool bAutoClose,
 	if (plstPacks == NULL)
 		plstPacks = &lstPacks;
 	pClient->SendPacket(CPacket(nCmd, pData, nLength, hEvent), *plstPacks);
+	CloseHandle(hEvent);//回收事件句柄，防止资源耗尽
 	if (plstPacks->size() > 0) {
 		return plstPacks->front().sCmd;
 	}
@@ -84,16 +86,26 @@ int CClientController::DownFile(CString strPath){
 		m_statusDlg.CenterWindow(&m_remoteDlg);
 		m_statusDlg.SetActiveWindow();
 	}
-
 	return 0;
 }
 
 void CClientController::StartWatchScreen()
 {
 	m_isClosed = false;
-	//m_WatchDlg.SetParent(&m_remoteDlg);
-	m_hThreadWatch = (HANDLE)_beginthread(&CClientController::threadWatchScreen, 0, this);
-	m_remoteDlg.DoModal();
+
+	// 确保不重复创建
+	if (m_remoteDlg.GetSafeHwnd() == NULL)
+	{
+		m_hThreadWatch = (HANDLE)_beginthread(&CClientController::threadWatchScreen, 0, this);
+		m_remoteDlg.DoModal();
+	}
+	else
+	{
+		// 如果对话框已存在，只需激活它
+		m_remoteDlg.BringWindowToTop();
+		m_remoteDlg.SetForegroundWindow();
+	}
+
 	m_isClosed = true;
 	WaitForSingleObject(m_hThreadWatch, 500);
 }
@@ -106,9 +118,10 @@ void CClientController::threadWatchScreen()
 			std::list<CPacket> lstPacks;
 			int ret = SendCommandPacket(6, true, NULL, 0, &lstPacks);
 			if (ret == 6) {
-				if (CEdoyunTool::Bytes2Image(m_remoteDlg.GetImage(), 
+				if (CEdoyunTool::Bytes2Image(m_WatchDlg.GetImage(), 
 					lstPacks.front().strData) == 0) {
 					m_WatchDlg.SetImageStatus(true);
+					TRACE("成功设置图片 %08X\r\n", (HBITMAP)m_WatchDlg.GetImage());
 				}
 				else {
 					TRACE("获取图片失败! ret = %d\r\n", ret);

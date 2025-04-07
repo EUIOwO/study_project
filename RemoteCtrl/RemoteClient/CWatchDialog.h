@@ -20,12 +20,17 @@ public:
 public:
 	int m_nObjWidth;//目标的宽
 	int m_nObjHeight;//目标的高
+	CImage m_image;
 
 protected:
 	bool m_isFull;//缓存是否有数据，true表示有缓存数据，false表示没有缓存数据
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
 	DECLARE_MESSAGE_MAP()
 public:
+	CImage& GetImage() {
+		return m_image;
+	}
+
 	void SetImageStatus(bool isFull = false) {
 		m_isFull = isFull;
 	}

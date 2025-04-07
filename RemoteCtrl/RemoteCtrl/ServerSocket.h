@@ -3,9 +3,6 @@
 #include "Packet.h"
 #pragma comment(lib, "ws2_32.lib")
 
-
-
-
 typedef void(*SOCKET_CALLBACK)(void*, int, std::list<CPacket>& lstPacket, CPacket& inPacket);
 
 class CServerSocket
@@ -17,6 +14,7 @@ public:
 		}
 		return m_instance;
 	}
+
 	bool InitSocket(short port = 9527) {
 
 		if (m_socket == INVALID_SOCKET) {
@@ -37,7 +35,7 @@ public:
 
 			return false;
 		}
-		
+
 		return true;
 	}
 

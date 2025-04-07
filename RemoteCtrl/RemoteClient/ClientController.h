@@ -50,7 +50,7 @@ public:
 	int SendCommandPacket(int nCmd, bool bAutoClose = true,
 		BYTE* pData = NULL, size_t nLength = 0,std::list<CPacket>* lstPacks = NULL);
 	
-	int GetImage(CImage& image) {
+	int GetImage(CImage& image) {  
 		CClientSocket* pClient = CClientSocket::getInstance();
 		return CEdoyunTool::Bytes2Image(image, pClient->GetPacket().strData);
 	}
