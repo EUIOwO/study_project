@@ -122,6 +122,7 @@ void CClientController::threadWatchScreen()
 					lstPacks.front().strData) == 0) {
 					m_WatchDlg.SetImageStatus(true);
 					TRACE("成功设置图片 %08X\r\n", (HBITMAP)m_WatchDlg.GetImage());
+					TRACE("和校验：%04X\r\n", lstPacks.front().sSum);
 				}
 				else {
 					TRACE("获取图片失败! ret = %d\r\n", ret);
