@@ -15,30 +15,6 @@ public:
 		return m_instance;
 	}
 
-	bool InitSocket(short port = 9527) {
-
-		if (m_socket == INVALID_SOCKET) {
-			return false;
-		}
-		//TODO：校验
-		sockaddr_in serv_addr;
-		memset(&serv_addr, 0, sizeof(serv_addr));
-		serv_addr.sin_family = AF_INET;//地址族
-		serv_addr.sin_addr.s_addr = INADDR_ANY;
-		serv_addr.sin_port = htons(port);
-
-		//绑定
-		if (bind(m_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1) {
-			return false;
-		}
-		if (listen(m_socket, 1) == -1) {
-
-			return false;
-		}
-
-		return true;
-	}
-
 	int Run(SOCKET_CALLBACK callback, void* arg, short port = 9527) {
 		//1.进度的可控性 2.对接的方便性 3.可行性评估，提早暴露风险
 		//TODO:socket、bind、listen、accept、read、write、close
@@ -69,6 +45,29 @@ public:
 		return 0;
 	}
 
+protected:
+	bool InitSocket(short port) {
+
+		if (m_socket == -1) {
+			return false;
+		}
+		//TODO：校验
+		sockaddr_in serv_addr;
+		memset(&serv_addr, 0, sizeof(serv_addr));
+		serv_addr.sin_family = AF_INET;//地址族
+		serv_addr.sin_addr.s_addr = INADDR_ANY;
+		serv_addr.sin_port = htons(port);
+		//绑定
+		if (bind(m_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1) {
+			return false;
+		}
+		if (listen(m_socket, 1) == -1) {
+
+			return false;
+		}
+
+		return true;
+	}
 	bool AcceptClient() {
 		TRACE("enter AcceptClient\r\n");
 		sockaddr_in client_addr;

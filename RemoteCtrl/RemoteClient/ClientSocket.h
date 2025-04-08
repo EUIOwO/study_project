@@ -156,19 +156,16 @@ public:
 		if (m_sock != INVALID_SOCKET) CloseSocket();
 		m_sock = socket(PF_INET, SOCK_STREAM, 0);
 		if (m_sock == -1) return false;
-		//TODO：校验
 		sockaddr_in serv_addr;
 		memset(&serv_addr, 0, sizeof(serv_addr));
 		serv_addr.sin_family = AF_INET;//地址族
 		TRACE("addr %08x nIP %08x\r\n",inet_addr("127.0.0.1"), m_nIP);
-		serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 		serv_addr.sin_addr.s_addr = htonl(m_nIP);
 		serv_addr.sin_port = htons(m_nPort);
 		if (serv_addr.sin_addr.s_addr == INADDR_NONE) {
 			AfxMessageBox("指定的IP地址，不存在！");
 			return false;
 		}
-		
 		int ret = connect(m_sock, (sockaddr*)&serv_addr, sizeof(serv_addr));
 		if (ret == -1) {
 			AfxMessageBox("连接失败！！");
@@ -244,7 +241,7 @@ public:
 private:
 	bool m_bAutoClose;
 	std::list<CPacket> m_lstSend;
-	std::map<HANDLE, std::list<CPacket>> m_mapAck;
+	std::map<HANDLE, std::list<CPacket>&> m_mapAck;
 	std::map<HANDLE, bool>m_mapAutoClosed;
 	int m_nIP;//地址
 	int m_nPort;//端口

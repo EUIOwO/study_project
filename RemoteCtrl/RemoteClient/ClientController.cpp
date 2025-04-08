@@ -60,7 +60,7 @@ int CClientController::SendCommandPacket(int nCmd, bool bAutoClose,
 	std::list<CPacket>lstPacks;//应答结果包
 	if (plstPacks == NULL)
 		plstPacks = &lstPacks;
-	pClient->SendPacket(CPacket(nCmd, pData, nLength, hEvent), *plstPacks);
+	pClient->SendPacket(CPacket(nCmd, pData, nLength, hEvent), *plstPacks, bAutoClose);
 	CloseHandle(hEvent);//回收事件句柄，防止资源耗尽
 	if (plstPacks->size() > 0) {
 		return plstPacks->front().sCmd;
@@ -166,7 +166,8 @@ void CClientController::threadDownloadFile()
 				TRACE("传输失败：ret = %d\r\n", ret);
 				break;
 			}
-			fwrite(CClientSocket::getInstance()->GetPacket().strData.c_str(), 1, CClientSocket::getInstance()->GetPacket().strData.size(), pFile);
+			fwrite(CClientSocket::getInstance()->GetPacket().strData.c_str(), 1,
+				CClientSocket::getInstance()->GetPacket().strData.size(), pFile);
 			nCount += CClientSocket::getInstance()->GetPacket().strData.size();
 		}
 	} while (false);
