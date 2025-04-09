@@ -10,6 +10,8 @@
 #include<map>
 #include<mutex>
 
+#define WM_SEND_PACK (WM_USER+1)//发送包数据
+
 class CPacket {
 public:
 	CPacket() :sHead(0), nLength(0), sCmd(0), sSum(0) {}
@@ -219,6 +221,9 @@ public:
 		}
  	}
 private:
+	typedef void (CClientSocket::* MSGFUNC)(UINT nMsg, 
+		WPARAM wParam, LPARAM lParam);
+	std::map<UINT, MSGFUNC> m_mapFunc;
 	HANDLE m_hThread;
 	bool m_bAutoClose;
 	std::mutex m_lock;
@@ -234,11 +239,25 @@ private:
 	//复制构造函数
 	CClientSocket(const CClientSocket& ss)
 	{
+		m_hThread = INVALID_HANDLE_VALUE;
 		m_bAutoClose = ss.m_bAutoClose;
 		m_sock = ss.m_sock;
 		m_nIP = ss.m_nIP;
 		m_nPort = ss.m_nPort;
-
+		struct {
+			UINT message;
+			MSGFUNC func;
+		}funcs[] = {
+			{WM_SEND_PACK, &CClientSocket::SendPack},
+			{0, NULL}
+		};
+		for (int i = 0; funcs[i].message != 0; i++) {
+			if (m_mapFunc.insert(std::pair<UINT, MSGFUNC>(funcs[i].message,
+				funcs[i].func)).second == false) {
+				TRACE("插入失败，消息值：%d 函数值:%08X\r\n", funcs[i].message, funcs[i].func, i);
+			}
+		}
+		
 	}
 	//无参的默认构造函数
 	CClientSocket() :
@@ -262,7 +281,7 @@ private:
 
 	static void threadEntry(void* arg);
 	void threadFunc();
-
+	void threadFunc2();
 	BOOL InitSocEnv() {
 		WSADATA data;
 		if (WSAStartup(MAKEWORD(1, 1), &data) != 0) {
@@ -284,6 +303,7 @@ private:
 		return send(m_sock, pData, nSize, 0) > 0;
 	}
 	bool Send(const CPacket& pack);
+	void SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam);
 	static CClientSocket* m_instance;
 	class CHelper {
 	public:
