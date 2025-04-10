@@ -22,21 +22,36 @@ std::string GetErrorInfo(int wsaErrCode) {
 	return ret;
 }
 
-bool CClientSocket::InitSocket()
+void Dump(BYTE* pData, size_t nSize) {
+	std::string strOut;
+	for (size_t i = 0; i < nSize; i++) {
+		char buf[8] = "";
+		if (i > 0 && (i % 16 == 0)) strOut += "\n";
+		snprintf(buf, sizeof(buf), "%02X ", pData[i] & 0xFF);
+		strOut += buf;
+	}
+	strOut += "\n";
+	OutputDebugStringA(strOut.c_str());
+}
+
+bool CClientSocket::InitSocket(int nIP, int nPort)
 {
 	if (m_sock != INVALID_SOCKET) CloseSocket();
 	m_sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (m_sock == -1) return false;
+	//TODO：校验
 	sockaddr_in serv_addr;
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;//地址族
-	TRACE("addr %08x nIP %08x\r\n", inet_addr("127.0.0.1"), m_nIP);
-	serv_addr.sin_addr.s_addr = htonl(m_nIP);
-	serv_addr.sin_port = htons(m_nPort);
+	TRACE("addr %08x nIP %08x\r\n", inet_addr("127.0.0.1"), nIP);
+	serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	serv_addr.sin_addr.s_addr = htonl(nIP);
+	serv_addr.sin_port = htons(nPort);
 	if (serv_addr.sin_addr.s_addr == INADDR_NONE) {
 		AfxMessageBox("指定的IP地址，不存在！");
 		return false;
 	}
+
 	int ret = connect(m_sock, (sockaddr*)&serv_addr, sizeof(serv_addr));
 	if (ret == -1) {
 		AfxMessageBox("连接失败！！");
@@ -186,3 +201,4 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 		//TODO:错误处理
 	}
 }
+

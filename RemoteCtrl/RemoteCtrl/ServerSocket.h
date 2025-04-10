@@ -3,6 +3,7 @@
 #include "Packet.h"
 #pragma comment(lib, "ws2_32.lib")
 
+
 typedef void(*SOCKET_CALLBACK)(void*, int, std::list<CPacket>& lstPacket, CPacket& inPacket);
 
 class CServerSocket

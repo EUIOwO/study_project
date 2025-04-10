@@ -146,7 +146,7 @@ typedef struct file_info {
 }FILEINFO, * PFILEINFO;
 
 std::string GetErrorInfo(int wsaErrCode);
-
+void Dump(BYTE* pData, size_t nSize);
 class CClientSocket
 {
 public:
@@ -156,7 +156,7 @@ public:
 		}
 		return m_instance;
 	}
-	bool InitSocket();
+	bool InitSocket(int nIP, int nPort);
 	
 #define BUFFER_SIZE 819200000
 	int DealCommand() {
